@@ -26,12 +26,14 @@ target_sources(gamelib
 		"source/bindings.hpp"
 		"source/bindings/shader.hpp"
 		"source/bindings/pipeline.hpp"
+		"source/bindings/commandbuffer.hpp"
 	PRIVATE
 		"source/luax.cpp"
 		"source/program.cpp"
 		"source/bindings.cpp"
 		"source/bindings/shader.cpp"
 		"source/bindings/pipeline.cpp"
+		"source/bindings/commandbuffer.cpp"
 )
 target_link_libraries(gamelib PUBLIC
 	SDL3::SDL3

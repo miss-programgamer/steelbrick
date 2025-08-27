@@ -5,7 +5,7 @@
 #include <lua.hpp>
 
 
-void luaopen_game(lua_State* lua);
+void lua_openbindings(lua_State* lua);
 
 
 #endif // GAME_BINDINGS_HEADER

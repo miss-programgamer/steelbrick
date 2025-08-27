@@ -12,56 +12,60 @@
 #include "shader.hpp"
 
 
-#define LUA_PIPELINE_TABLE "_PIPELINE"
-
-#define lua_pushpipelinetable(L) (lua_getfield(L, LUA_REGISTRYINDEX, LUA_PIPELINE_TABLE), lua_gettop(L))
+#define LUA_VERTEX_USERVALUE 1
+#define LUA_FRAGMENT_USERVALUE 2
 
 
 static int call_constructor(lua_State* lua);
 
-static int call_destructor(lua_State* lua);
+static int call_finalizer(lua_State* lua);
 
 
 int luaopen_pipeline(lua_State* lua)
 {
 	static const luaL_Reg metatable[]
 	{
+		{ "__gc", call_finalizer },
 		{ "__metatable", nullptr },
-		{ "__gc", call_destructor },
+		{ "__index", nullptr },
 		{ nullptr, nullptr },
 	};
 
 	static const luaL_Reg callable[]
 	{
 		{ "__call", call_constructor },
+		{ "__metatable", nullptr },
 		{ nullptr, nullptr },
 	};
 
 	if (luaL_newmetatable(lua, "Pipeline"))
 	{
-		lua_newtable(lua);
-		lua_setfield(lua, LUA_REGISTRYINDEX, LUA_PIPELINE_TABLE);
-
 		luaL_setfuncs(lua, metatable, 0);
+		lua_pushvalue(lua, -1);
+		lua_setfield(lua, -2, "__index");
+		lua_pushvalue(lua, -1);
+		lua_setfield(lua, -2, "__metatable");
 
 		luaL_newlib(lua, callable);
+		lua_pushvalue(lua, -1);
+		lua_setfield(lua, -2, "__metatable");
 		lua_setmetatable(lua, -2);
-
-		return 1;
 	}
 
-	return 0;
+	return 1;
 }
 
 
-SDL_GPUGraphicsPipeline* lua_checkpipeline(lua_State* lua, int index)
+SDL_GPUGraphicsPipeline*& lua_checkpipeline(lua_State* lua, int index)
 {
-	return lua_checkudata<SDL_GPUGraphicsPipeline>(lua, index, "Pipeline");
+	return *lua_checkudata<SDL_GPUGraphicsPipeline*>(lua, index, "Pipeline");
 }
 
 
 static int call_constructor(lua_State* lua)
 {
+	auto& program = *lua_getprogram(lua);
+
 	static const Game::HashMap<std::string, SDL_GPUVertexElementFormat> vertex_formats
 	{
 		{ "int",  SDL_GPU_VERTEXELEMENTFORMAT_INT },
@@ -118,8 +122,6 @@ static int call_constructor(lua_State* lua)
 		{ "vertex",   SDL_GPU_VERTEXINPUTRATE_VERTEX, },
 		{ "instance", SDL_GPU_VERTEXINPUTRATE_INSTANCE, },
 	};
-
-	auto& program = *lua_getprogram(lua);
 
 	if (!lua_istable(lua, 2))
 	{ return luaL_typeerror(lua, 1, "table"); }
@@ -256,48 +258,37 @@ static int call_constructor(lua_State* lua)
 		},
 	};
 
-	auto pipeline = SDL_CreateGPUGraphicsPipeline(program, &info);
+	auto& pipeline = *(SDL_GPUGraphicsPipeline**)lua_newuserdatauv(lua, sizeof(SDL_GPUGraphicsPipeline*), 2);
+	pipeline = SDL_CreateGPUGraphicsPipeline(program, &info);
 
 	if (pipeline == nullptr)
 	{ return luaL_error(lua, "%s", SDL_GetError()); }
 
-	lua_pushlightuserdata(lua, pipeline);
-	lua_rotate(lua, 1, -1);
+	lua_pushvalue(lua, 1);
 	lua_setmetatable(lua, -2);
 
-	// Add hidden references to our shaders to prevent GC
-	auto pipeline_table = lua_pushpipelinetable(lua);
-	lua_newtable(lua);
-	{
-		lua_pushvalue(lua, 3);
-		lua_rawseti(lua, -2, 1);
-		lua_pushvalue(lua, 4);
-		lua_rawseti(lua, -2, 2);
-	}
-	lua_rawsetp(lua, pipeline_table, pipeline);
+	lua_pushvalue(lua, 3);
+	lua_setiuservalue(lua, -2, LUA_VERTEX_USERVALUE);
+
+	lua_pushvalue(lua, 4);
+	lua_setiuservalue(lua, -2, LUA_FRAGMENT_USERVALUE);
 
 	return 1;
 }
 
 
-static int call_destructor(lua_State* lua)
+static int call_finalizer(lua_State* lua)
 {
 	auto& program = *lua_getprogram(lua);
 
 	auto pipeline = lua_checkpipeline(lua, 1);
 	SDL_ReleaseGPUGraphicsPipeline(program, pipeline);
 
-	// Free hidden references to our shaders to allow GC
-	auto pipeline_table = lua_pushpipelinetable(lua);
-	lua_rawgetp(lua, pipeline_table, pipeline);
-	{
-		lua_pushnil(lua);
-		lua_rawseti(lua, -2, 2);
-		lua_pushnil(lua);
-		lua_rawseti(lua, -2, 1);
-	}
 	lua_pushnil(lua);
-	lua_rawsetp(lua, pipeline_table, pipeline);
+	lua_setiuservalue(lua, 1, LUA_VERTEX_USERVALUE);
+
+	lua_pushnil(lua);
+	lua_setiuservalue(lua, 1, LUA_FRAGMENT_USERVALUE);
 
 	return 0;
 }

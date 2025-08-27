@@ -11,7 +11,7 @@ local pipeline = Pipeline{
 	buffers = {
 		{
 			slot = 0,
-			pitch = 0,
+			pitch = 24,
 			rate = "vertex",
 		},
 	},
@@ -30,3 +30,8 @@ local pipeline = Pipeline{
 		},
 	},
 }
+
+---@type DrawEvent
+function draw(delta)
+	local commands <close> = CommandBuffer()
+end

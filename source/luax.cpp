@@ -24,3 +24,21 @@ std::string_view lua_tostringviewex(lua_State* lua, int index)
 	const char* str = luaL_tolstring(lua, index, &length);
 	return std::string_view(str, length);
 }
+
+
+int lua_pushtraceback(lua_State* lua)
+{
+	if (lua_getfield(lua, LUA_REGISTRYINDEX, LUA_LOADED_TABLE) != LUA_TTABLE)
+	{ lua_pop(lua, 1); return 0; }
+
+	if (lua_getfield(lua, -1, "debug") != LUA_TTABLE)
+	{ lua_pop(lua, 2); return 0; }
+
+	if (lua_getfield(lua, -1, "traceback") != LUA_TFUNCTION)
+	{ lua_pop(lua, 3); return 0; }
+
+	lua_copy(lua, -1, -3);
+	lua_pop(lua, 2);
+
+	return lua_gettop(lua);
+}

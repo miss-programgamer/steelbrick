@@ -11,41 +11,47 @@
 
 static int call_constructor(lua_State* lua);
 
-static int call_destructor(lua_State* lua);
+static int call_finalizer(lua_State* lua);
 
 
 int luaopen_shader(lua_State* lua)
 {
 	static const luaL_Reg metatable[]
 	{
+		{ "__gc", call_finalizer },
 		{ "__metatable", nullptr },
-		{ "__gc", call_destructor },
+		{ "__index", nullptr },
 		{ nullptr, nullptr },
 	};
-
+	
 	static const luaL_Reg callable[]
 	{
 		{ "__call", call_constructor },
+		{ "__metatable", nullptr },
 		{ nullptr, nullptr },
 	};
 
 	if (luaL_newmetatable(lua, "Shader"))
 	{
 		luaL_setfuncs(lua, metatable, 0);
+		lua_pushvalue(lua, -1);
+		lua_setfield(lua, -2, "__index");
+		lua_pushvalue(lua, -1);
+		lua_setfield(lua, -2, "__metatable");
 
 		luaL_newlib(lua, callable);
+		lua_pushvalue(lua, -1);
+		lua_setfield(lua, -2, "__metatable");
 		lua_setmetatable(lua, -2);
-
-		return 1;
 	}
 
-	return 0;
+	return 1;
 }
 
 
 SDL_GPUShader* lua_checkshader(lua_State* lua, int index)
 {
-	return (SDL_GPUShader*)luaL_checkudata(lua, index, "Shader");
+	return lua_checkudata<SDL_GPUShader>(lua, index, "Shader");
 }
 
 
@@ -120,7 +126,7 @@ static int call_constructor(lua_State* lua)
 }
 
 
-static int call_destructor(lua_State* lua)
+static int call_finalizer(lua_State* lua)
 {
 	auto& program = *lua_getprogram(lua);
 	auto shader = (SDL_GPUShader*)luaL_checkudata(lua, 1, "Shader");

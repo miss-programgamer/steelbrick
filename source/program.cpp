@@ -4,6 +4,7 @@ using namespace Game;
 
 #include <exception>
 
+#include "luax.hpp"
 #include "debug.hpp"
 #include "bindings.hpp"
 
@@ -34,10 +35,16 @@ Program::Program(int argc, char** argv)
 	lua = luaL_newstate();
 	lua_getprogram(lua) = this;
 	luaL_openlibs(lua);
-	luaopen_game(lua);
+	lua_openbindings(lua);
 
-	if (luaL_dofile(lua, "assets/scripts/main.lua") != LUA_OK)
-	{ SDL_LogError(0, "Lua: %s", lua_tostring(lua, -1)); }
+	auto traceback = lua_pushtraceback(lua);
+	if (luaL_loadfile(lua, "assets/scripts/main.lua") == LUA_OK)
+	{
+		if (lua_pcall(lua, 0, 0, traceback) != LUA_OK)
+		{ SDL_LogError(0, "Lua: %s", lua_tostring(lua, -1)); }
+	}
+
+	lua_settop(lua, 0);
 
 	time = SDL_GetPerformanceCounter();
 }
@@ -56,6 +63,16 @@ SDL_AppResult Program::Update()
 	auto prev = time;
 	time = SDL_GetPerformanceCounter();
 	double delta = double(time - prev) / double(SDL_GetPerformanceFrequency());
+
+	lua_settop(lua, 0);
+
+	auto traceback = lua_pushtraceback(lua);
+	if (lua_getglobal(lua, "draw") == LUA_TFUNCTION)
+	{
+		lua_pushnumber(lua, delta);
+		if (lua_pcall(lua, 1, 0, traceback) != LUA_OK)
+		{ SDL_LogError(0, "Lua: %s", lua_tostring(lua, -1)); }
+	}
 
 	return SDL_APP_CONTINUE;
 }

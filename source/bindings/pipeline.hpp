@@ -8,7 +8,7 @@
 
 int luaopen_pipeline(lua_State* lua);
 
-SDL_GPUGraphicsPipeline* lua_checkpipeline(lua_State* lua, int index);
+SDL_GPUGraphicsPipeline*& lua_checkpipeline(lua_State* lua, int index);
 
 
 #endif // GAME_BINDINGS_PIPELINE_HEADER
