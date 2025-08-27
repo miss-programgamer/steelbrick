@@ -20,6 +20,7 @@ int luaopen_shader(lua_State* lua)
 	{
 		{ "__gc", call_finalizer },
 		{ "__metatable", nullptr },
+		{ "__newindex", nullptr },
 		{ "__index", nullptr },
 		{ nullptr, nullptr },
 	};

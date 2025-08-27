@@ -1,5 +1,12 @@
-local vshader = Shader("assets/shaders/default.hlsl", { entry = "vMain", stage = "vertex" })
-local fshader = Shader("assets/shaders/default.hlsl", { entry = "fMain", stage = "fragment" })
+local vshader = Shader("assets/shaders/default.hlsl", {
+	entry = "vMain",
+	stage = "vertex",
+})
+
+local fshader = Shader("assets/shaders/default.hlsl", {
+	entry = "fMain",
+	stage = "fragment",
+})
 
 local pipeline = Pipeline{
 	vertex = vshader,
@@ -34,4 +41,12 @@ local pipeline = Pipeline{
 ---@type DrawEvent
 function draw(delta)
 	local commands <close> = CommandBuffer()
+
+	do local pass <close> = commands:copypass()
+		-- copy data to GPU
+	end
+
+	do local pass <close> = commands:renderpass(pipeline)
+		-- actually make draw calls
+	end
 end

@@ -3,6 +3,7 @@
 
 #include "../luax.hpp"
 #include "../program.hpp"
+#include "pipeline.hpp"
 
 
 static int call_constructor(lua_State* lua);
@@ -11,14 +12,21 @@ static int call_destructor(lua_State* lua);
 
 static int call_finalizer(lua_State* lua);
 
+static int call_copypass(lua_State* lua);
+
+static int call_renderpass(lua_State* lua);
+
 
 int luaopen_commandbuffer(lua_State* lua)
 {
 	static const luaL_Reg metatable[]
 	{
-		{ "__close", call_destructor },
-		{ "__gc",    call_finalizer },
+		{ "copypass",   call_copypass },
+		{ "renderpass", call_renderpass },
+		{ "__close",    call_destructor },
+		{ "__gc",       call_finalizer },
 		{ "__metatable", nullptr },
+		{ "__newindex", nullptr },
 		{ "__index", nullptr },
 		{ nullptr, nullptr },
 	};
@@ -58,7 +66,7 @@ static int call_constructor(lua_State* lua)
 {
 	auto& program = *lua_getprogram(lua);
 
-	auto& commands = *(SDL_GPUCommandBuffer**)lua_newuserdatauv(lua, sizeof(SDL_GPUCommandBuffer*), 1);
+	auto& commands = lua_newudata<SDL_GPUCommandBuffer*>(lua, nullptr, 1);
 	commands = SDL_AcquireGPUCommandBuffer(program);
 
 	if (commands == nullptr)
@@ -123,4 +131,33 @@ static int call_finalizer(lua_State* lua)
 	}
 
 	return 0;
+}
+
+
+static int call_copypass(lua_State* lua)
+{
+	auto& commands = lua_checkcommandbuffer(lua, 1);
+
+	auto& pass = lua_newudata<SDL_GPUCopyPass*>(lua, "CopyPass");
+	pass = SDL_BeginGPUCopyPass(commands);
+
+	return 1;
+}
+
+
+static int call_renderpass(lua_State* lua)
+{
+	auto& commands = lua_checkcommandbuffer(lua, 1);
+	auto& pipeline = lua_checkpipeline(lua, 2);
+
+	lua_getiuservalue(lua, 1, 1);
+	auto texture = (SDL_GPUTexture*)lua_tointeger(lua, -1);
+	lua_pop(lua, 1);
+
+	SDL_GPUColorTargetInfo target_info { .texture = texture };
+	auto& pass = lua_newudata<SDL_GPURenderPass*>(lua, "RenderPass");
+	pass = SDL_BeginGPURenderPass(commands, &target_info, 1, nullptr);
+	SDL_BindGPUGraphicsPipeline(pass, pipeline);
+
+	return 1;
 }

@@ -26,6 +26,8 @@ target_sources(gamelib
 		"source/bindings.hpp"
 		"source/bindings/shader.hpp"
 		"source/bindings/pipeline.hpp"
+		"source/bindings/copypass.hpp"
+		"source/bindings/renderpass.hpp"
 		"source/bindings/commandbuffer.hpp"
 	PRIVATE
 		"source/luax.cpp"
@@ -33,6 +35,8 @@ target_sources(gamelib
 		"source/bindings.cpp"
 		"source/bindings/shader.cpp"
 		"source/bindings/pipeline.cpp"
+		"source/bindings/copypass.cpp"
+		"source/bindings/renderpass.cpp"
 		"source/bindings/commandbuffer.cpp"
 )
 target_link_libraries(gamelib PUBLIC

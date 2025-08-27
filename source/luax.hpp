@@ -18,8 +18,16 @@ std::string_view lua_tostringviewex(lua_State* lua, int index);
 int lua_pushtraceback(lua_State* lua);
 
 template<typename T>
-T* lua_checkudata(lua_State* lua, int index, const char* name)
-{ return (T*)luaL_checkudata(lua, index, name); }
+T& lua_newudata(lua_State* lua, const char* tname, int nuvalue = 0)
+{
+	auto& ptr = *(T*)lua_newuserdatauv(lua, sizeof(T), nuvalue);
+	if (tname) { luaL_setmetatable(lua, tname); }
+	return ptr;
+}
+
+template<typename T>
+T* lua_checkudata(lua_State* lua, int index, const char* tname)
+{ return (T*)luaL_checkudata(lua, index, tname); }
 
 
 #endif // GAME_LUAX_HEADER

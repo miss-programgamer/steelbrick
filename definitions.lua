@@ -52,12 +52,32 @@ Pipeline = {}
 
 ---Construct a graphics pipeline instance.
 ---@param info PipelineInfo Information necessary to create a graphics pipeline.
----@returns Pipeline # Newly constructed graphics pipeline instance.
+---@return Pipeline # Newly constructed graphics pipeline instance.
 function Pipeline(info) end
 
 
+---Copy pass on a command buffer for uploading data to the GPU.
+---@class CopyPass
+local CopyPass
+
+
+---Render pass on a command buffer for rendering graphics on the GPU.
+---@class RenderPass
+local RenderPass
+
+
+---Command buffer for batching various graphical operations together.
 ---@class CommandBuffer
 CommandBuffer = {}
+
+---Begin a [copy pass](lua://CopyPass) on this command buffer.
+---@return CopyPass
+function CommandBuffer:copypass() end
+
+---Begin a [render pass](lua://RenderPass) on this command buffer.
+---@return RenderPass
+---@param pipeline Pipeline The graphics pipeline to bind to this render pass.
+function CommandBuffer:renderpass(pipeline) end
 
 ---@return CommandBuffer
 function CommandBuffer() end

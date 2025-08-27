@@ -27,6 +27,7 @@ int luaopen_pipeline(lua_State* lua)
 	{
 		{ "__gc", call_finalizer },
 		{ "__metatable", nullptr },
+		{ "__newindex", nullptr },
 		{ "__index", nullptr },
 		{ nullptr, nullptr },
 	};
