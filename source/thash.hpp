@@ -15,7 +15,7 @@ namespace Game
 	 * @tparam T The type to hash.
 	 */
 	template<typename T>
-	class thash : public std::hash<T>
+	struct thash : public std::hash<T>
 	{ using is_transparent = void; };
 }
 
