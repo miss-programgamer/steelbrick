@@ -23,6 +23,12 @@ namespace Game
 		{ using HashMap = std::unordered_map<std::string, V, thash<std::string_view>, std::equal_to<void>, A>; };
 	}
 
+	/**
+	 * @brief Alias of `std::unordered_map` that doesn't construct new keys on lookup.
+	 * 
+	 * @tparam K Key type.
+	 * @tparam V Value type.
+	 */
 	template<typename K, typename V>
 	using HashMap = Detail::HashMapHelper<K, V>::HashMap;
 }

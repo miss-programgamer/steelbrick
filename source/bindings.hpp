@@ -5,6 +5,11 @@
 #include <lua.hpp>
 
 
+/**
+ * @brief Open the program's Lua bindings globally.
+ * 
+ * @param lua Lua state.
+ */
 void lua_openbindings(lua_State* lua);
 
 

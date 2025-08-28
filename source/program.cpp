@@ -11,12 +11,14 @@ using namespace Game;
 
 Program::Program(int argc, char** argv)
 {
-	const auto& flags = SDL_WINDOW_HIDDEN|SDL_WINDOW_RESIZABLE;
+	// Create our main window with our desired flags.
+	static const auto& flags = SDL_WINDOW_HIDDEN|SDL_WINDOW_RESIZABLE;
 	window = SDL_CreateWindow("SteelBrick", 800, 600, flags);
 
 	if (window == nullptr)
 	{ throw std::exception(SDL_GetError()); }
 
+	// Create a handle to our GPU device.
 	device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_DXIL, debug, nullptr);
 
 	if (device == nullptr)
@@ -26,26 +28,30 @@ Program::Program(int argc, char** argv)
 		throw std::exception(what);
 	}
 
+	// Ensure our GPU device can draw to our window.
 	if (!SDL_ClaimWindowForGPUDevice(device, window))
 	{ SDL_LogError(0, "%s", SDL_GetError); }
 
-	if (!SDL_ShowWindow(window))
-	{ SDL_LogError(0, "%s", SDL_GetError); }
-
+	// Initialize our Lua state.
 	lua = luaL_newstate();
 	lua_getprogram(lua) = this;
 	luaL_openlibs(lua);
 	lua_openbindings(lua);
 
+	// Load & run our main script.
 	auto traceback = lua_pushtraceback(lua);
 	if (luaL_loadfile(lua, "assets/scripts/main.lua") == LUA_OK)
 	{
 		if (lua_pcall(lua, 0, 0, traceback) != LUA_OK)
 		{ SDL_LogError(0, "Lua: %s", lua_tostring(lua, -1)); }
 	}
-
 	lua_settop(lua, 0);
 
+	// Show our window once we're done initializing.
+	if (!SDL_ShowWindow(window))
+	{ SDL_LogError(0, "%s", SDL_GetError); }
+
+	// Start measuring time.
 	time = SDL_GetPerformanceCounter();
 }
 
@@ -60,12 +66,12 @@ Program::~Program()
 
 SDL_AppResult Program::Update()
 {
+	// Calculate elapsed time since last update.
 	auto prev = time;
 	time = SDL_GetPerformanceCounter();
 	double delta = double(time - prev) / double(SDL_GetPerformanceFrequency());
 
-	lua_settop(lua, 0);
-
+	// Invoke our main script's draw function.
 	auto traceback = lua_pushtraceback(lua);
 	if (lua_getglobal(lua, "draw") == LUA_TFUNCTION)
 	{
@@ -73,7 +79,9 @@ SDL_AppResult Program::Update()
 		if (lua_pcall(lua, 1, 0, traceback) != LUA_OK)
 		{ SDL_LogError(0, "Lua: %s", lua_tostring(lua, -1)); }
 	}
+	lua_settop(lua, 0);
 
+	// Continue running.
 	return SDL_APP_CONTINUE;
 }
 
@@ -93,10 +101,13 @@ SDL_AppResult Program::Handle(const SDL_Event& event)
 
 SDL_AppResult Program::Handle(const SDL_QuitEvent& quit)
 {
+	// When exiting program, hide window immediately.
 	if (!SDL_HideWindow(window))
 	{ SDL_LogError(0, "%s", SDL_GetError); }
 
+	// Pre-emptively collect garbage.
 	lua_gc(lua, LUA_GCCOLLECT);
 
+	// Exit app & signal success.
 	return SDL_APP_SUCCESS;
 }

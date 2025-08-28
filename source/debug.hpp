@@ -3,8 +3,14 @@
 
 
 #ifdef _DEBUG
+/**
+ * @brief Is `true` if `_DEBUG` is defined, `false` otherwise.
+ */
 constexpr bool debug = true;
 #else
+/**
+ * @brief Is `true` if `_DEBUG` is defined, `false` otherwise.
+ */
 constexpr bool debug = false;
 #endif
 
