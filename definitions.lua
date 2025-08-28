@@ -5,6 +5,35 @@
 ---@alias DrawEvent fun(delta: number)
 
 
+---Represents a color where each component is a normalized value.
+---@class Color
+---@field r number Red component of a color.
+---@field g number Green component of a color.
+---@field b number Blue component of a color.
+---@field a number Alpha component of a color.
+Color = {}
+
+
+---Construct a color from RGBA values.
+---@param v number RGB components of a color.
+---@param a number? Alpha component of a color.
+---@return Color # The resulting color.
+function Color(v, a) end
+
+---Construct a color from RGBA values.
+---@param r number Red component of a color.
+---@param g number Green component of a color.
+---@param b number Blue component of a color.
+---@param a number? Alpha component of a color.
+---@return Color # The resulting color.
+function Color(r, g, b, a) end
+
+---Construct a color from RGBA values.
+---@param parts { r:number?, g:number?, b:number?, a:number? } Color components.
+---@return Color # The resulting color.
+function Color(parts) end
+
+
 ---Information necessary to create a shader.
 ---@class ShaderInfo
 ---@field entry string Entry point of this shader program.

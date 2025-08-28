@@ -34,6 +34,18 @@ std::string_view lua_tostringview(lua_State* lua, int index);
 std::string_view lua_tostringviewex(lua_State* lua, int index);
 
 /**
+ * [-0, +0, v]
+ * 
+ * Equivalent to calling [`luaL_checklstring`](https://www.lua.org/manual/5.4/manual.html#luaL_checklstring)
+ *  except that the results are packed into a `std::string_view`.
+ * 
+ * @param lua Lua state.
+ * @param arg Function argument of the string to obtain.
+ * @return A `std::string_view` of the argument at the given index.
+ */
+std::string_view lua_checkstringview(lua_State* lua, int arg);
+
+/**
  * [-0, +0, e]
  * 
  * Get the length of the table at the given index.
@@ -86,6 +98,14 @@ T* lua_checkudata(lua_State* lua, int arg, const char* tname)
 {
 	return (T*)luaL_checkudata(lua, arg, tname);
 }
+
+/**
+ * @brief Property getter/setter function signature.
+ * 
+ * @tparam T The type with properties being accessed.
+ */
+template<typename T>
+using lua_Prop = void(*)(lua_State*, T&);
 
 
 #endif // GAME_LUAX_HEADER

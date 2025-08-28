@@ -17,6 +17,14 @@ std::string_view lua_tostringviewex(lua_State* lua, int index)
 }
 
 
+std::string_view lua_checkstringview(lua_State* lua, int arg)
+{
+	size_t length;
+	const char* str = luaL_checklstring(lua, arg, &length);
+	return std::string_view(str, length);
+}
+
+
 lua_Integer lua_getlen(lua_State* lua, int index)
 {
 	lua_len(lua, index);

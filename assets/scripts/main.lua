@@ -38,6 +38,12 @@ local pipeline = Pipeline{
 	},
 }
 
+local color1 = Color(0.5, 0, 0, 1)
+color1.r = 0.75
+
+local color2 = Color{ r = 1 }
+color2.b = 0.25
+
 ---@type DrawEvent
 function draw(delta)
 	local commands <close> = CommandBuffer()

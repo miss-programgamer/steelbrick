@@ -19,7 +19,7 @@ int luaopen_copypass(lua_State* lua);
 /**
  * [-0, +0, v]
  * 
- * Check whether the function argument arg is a copy pass and return it if so.
+ * Check whether the function argument arg is a copy pass, then return it if so.
  * 
  * @param lua Lua state.
  * @param arg Argument index to check.

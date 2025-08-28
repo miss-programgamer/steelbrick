@@ -19,7 +19,7 @@ int luaopen_pipeline(lua_State* lua);
 /**
  * [-0, +0, m]
  * 
- * Check whether the function argument arg is a graphics pipeline and return it if so.
+ * Check whether the function argument arg is a graphics pipeline, then return it if so.
  * 
  * @param lua Lua state.
  * @param arg Argument index to check.
@@ -30,7 +30,7 @@ SDL_GPUGraphicsPipeline* lua_testpipeline(lua_State* lua, int arg);
 /**
  * [-0, +0, v]
  * 
- * Check whether the function argument arg is a graphics pipeline and return it if so.
+ * Check whether the function argument arg is a graphics pipeline, then return it if so.
  * 
  * @param lua Lua state.
  * @param arg Argument index to check.

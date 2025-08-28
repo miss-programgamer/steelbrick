@@ -19,7 +19,7 @@ int luaopen_shader(lua_State* lua);
 /**
  * [-0, +0, v]
  * 
- * Check whether the function argument arg is a shader and return it if so.
+ * Check whether the function argument arg is a shader, then return it if so.
  * 
  * @param lua Lua state.
  * @param arg Argument index to check.

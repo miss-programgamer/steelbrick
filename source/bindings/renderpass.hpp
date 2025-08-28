@@ -19,7 +19,7 @@ int luaopen_renderpass(lua_State* lua);
 /**
  * [-0, +0, v]
  * 
- * Check whether the function argument arg is a render pass and return it if so.
+ * Check whether the function argument arg is a render pass, then return it if so.
  * 
  * @param lua Lua state.
  * @param arg Argument index to check.
