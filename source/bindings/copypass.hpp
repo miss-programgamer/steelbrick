@@ -6,9 +6,26 @@
 #include <lua.hpp>
 
 
+/**
+ * @brief Library loading function for copy pass type.
+ * 
+ * @note Meant to be used in conjunction with [`luaL_requiref`](https://www.lua.org/manual/5.4/manual.html#luaL_requiref).
+ * 
+ * @param lua Lua state.
+ * @return Number of returned values.
+ */
 int luaopen_copypass(lua_State* lua);
 
-SDL_GPUCopyPass*& lua_checkcopypass(lua_State* lua, int index);
+/**
+ * [-0, +0, v]
+ * 
+ * Check whether the function argument arg is a copy pass and return it if so.
+ * 
+ * @param lua Lua state.
+ * @param arg Argument index to check.
+ * @return A pointer to a copy pass.
+ */
+SDL_GPUCopyPass*& lua_checkcopypass(lua_State* lua, int arg);
 
 
 #endif // GAME_COPYPASS_HEADER

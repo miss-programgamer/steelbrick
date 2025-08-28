@@ -6,9 +6,26 @@
 #include <lua.hpp>
 
 
+/**
+ * @brief Library loading function for shader type.
+ * 
+ * @note Meant to be used in conjunction with [`luaL_requiref`](https://www.lua.org/manual/5.4/manual.html#luaL_requiref).
+ * 
+ * @param lua Lua state.
+ * @return Number of returned values.
+ */
 int luaopen_shader(lua_State* lua);
 
-SDL_GPUShader* lua_checkshader(lua_State* lua, int index);
+/**
+ * [-0, +0, v]
+ * 
+ * Check whether the function argument arg is a shader and return it if so.
+ * 
+ * @param lua Lua state.
+ * @param arg Argument index to check.
+ * @return A pointer to a shader.
+ */
+SDL_GPUShader* lua_checkshader(lua_State* lua, int arg);
 
 
 #endif // GAME_BINDINGS_SHADER_HEADER

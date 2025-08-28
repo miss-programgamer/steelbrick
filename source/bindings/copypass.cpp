@@ -24,6 +24,7 @@ int luaopen_copypass(lua_State* lua)
 
 	if (luaL_newmetatable(lua, "CopyPass"))
 	{
+		// Fill metatable
 		luaL_setfuncs(lua, metatable, 0);
 		lua_pushvalue(lua, -1);
 		lua_setfield(lua, -2, "__metatable");
@@ -35,9 +36,9 @@ int luaopen_copypass(lua_State* lua)
 }
 
 
-SDL_GPUCopyPass*& lua_checkcopypass(lua_State* lua, int index)
+SDL_GPUCopyPass*& lua_checkcopypass(lua_State* lua, int arg)
 {
-	return *lua_checkudata<SDL_GPUCopyPass*>(lua, index, "CopyPass");
+	return *lua_checkudata<SDL_GPUCopyPass*>(lua, arg, "CopyPass");
 }
 
 
@@ -60,6 +61,7 @@ static int call_finalizer(lua_State* lua)
 	{
 		SDL_EndGPUCopyPass(pass);
 		pass = nullptr;
+
 		return luaL_error(lua, "CopyPass %p was not closed properly (did you forget to add <close>)", lua_topointer(lua, 1));
 	}
 

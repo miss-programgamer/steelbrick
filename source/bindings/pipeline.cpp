@@ -10,6 +10,7 @@
 #include "../hashmap.hpp"
 #include "../program.hpp"
 #include "shader.hpp"
+#include "renderpass.hpp"
 
 
 #define LUA_VERTEX_USERVALUE 1
@@ -20,11 +21,14 @@ static int call_constructor(lua_State* lua);
 
 static int call_finalizer(lua_State* lua);
 
+static int call_bind(lua_State* lua);
+
 
 int luaopen_pipeline(lua_State* lua)
 {
 	static const luaL_Reg metatable[]
 	{
+		{ "bind", call_bind },
 		{ "__gc", call_finalizer },
 		{ "__metatable", nullptr },
 		{ "__newindex", nullptr },
@@ -41,12 +45,14 @@ int luaopen_pipeline(lua_State* lua)
 
 	if (luaL_newmetatable(lua, "Pipeline"))
 	{
+		// Fill metatable
 		luaL_setfuncs(lua, metatable, 0);
 		lua_pushvalue(lua, -1);
 		lua_setfield(lua, -2, "__index");
 		lua_pushvalue(lua, -1);
 		lua_setfield(lua, -2, "__metatable");
 
+		// Make metatable invokable
 		luaL_newlib(lua, callable);
 		lua_pushvalue(lua, -1);
 		lua_setfield(lua, -2, "__metatable");
@@ -57,16 +63,23 @@ int luaopen_pipeline(lua_State* lua)
 }
 
 
-SDL_GPUGraphicsPipeline*& lua_checkpipeline(lua_State* lua, int index)
+SDL_GPUGraphicsPipeline* lua_testpipeline(lua_State* lua, int arg)
 {
-	return *lua_checkudata<SDL_GPUGraphicsPipeline*>(lua, index, "Pipeline");
+	if (auto ptr = luaL_testudata(lua, arg, "Pipeline"))
+	{ return *(SDL_GPUGraphicsPipeline**)ptr; }
+	else
+	{ return nullptr; }
+}
+
+
+SDL_GPUGraphicsPipeline*& lua_checkpipeline(lua_State* lua, int arg)
+{
+	return *lua_checkudata<SDL_GPUGraphicsPipeline*>(lua, arg, "Pipeline");
 }
 
 
 static int call_constructor(lua_State* lua)
 {
-	auto& program = *lua_getprogram(lua);
-
 	static const Game::HashMap<std::string, SDL_GPUVertexElementFormat> vertex_formats
 	{
 		{ "int",  SDL_GPU_VERTEXELEMENTFORMAT_INT },
@@ -124,17 +137,20 @@ static int call_constructor(lua_State* lua)
 		{ "instance", SDL_GPU_VERTEXINPUTRATE_INSTANCE, },
 	};
 
-	if (!lua_istable(lua, 2))
-	{ return luaL_typeerror(lua, 1, "table"); }
+	auto& program = *lua_getprogram(lua);
 
+	// 1) Metatable, 2) info table
 	lua_settop(lua, 2);
 
+	// First arg field 'vertex' is our vertex shader.
 	lua_getfield(lua, 2, "vertex");
 	auto vertex = lua_checkshader(lua, 3);
 
+	// First arg field 'fragment' is our fragment shader.
 	lua_getfield(lua, 2, "fragment");
 	auto fragment = lua_checkshader(lua, 4);
 
+	// First arg field 'inputs' is our input layout.
 	lua_getfield(lua, 2, "inputs");
 	uint32_t inputs_size = lua_getlen(lua, 5);
 	auto inputs = std::make_unique<SDL_GPUVertexAttribute[]>(inputs_size);
@@ -155,8 +171,8 @@ static int call_constructor(lua_State* lua)
 		if (lua_getfield(lua, top, "format") != LUA_TSTRING)
 		{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'format' field of 'inputs' subtable #%d to be a string, was %s", i, luaL_typename(lua, top + 3))); }
 
-		if (auto it = vertex_formats.find(lua_tostring(lua, top + 3)); it == vertex_formats.end())
-		{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'format' field of 'inputs' subtable #%d to be a valid vertex format, was %s", i, lua_tostring(lua, top + 3))); }
+		if (auto it = vertex_formats.find(lua_tostringview(lua, top + 3)); it == vertex_formats.end())
+		{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'format' field of 'inputs' subtable #%d to be a valid vertex format, was %s", i, lua_tostringview(lua, top + 3))); }
 		else
 		{ input.format = it->second; }
 
@@ -168,6 +184,7 @@ static int call_constructor(lua_State* lua)
 		lua_pop(lua, 1);
 	}
 
+	// First arg field 'buffers' is our buffer descriptors.
 	lua_getfield(lua, 2, "buffers");
 	uint32_t buffers_size = lua_getlen(lua, 6);
 	auto buffers = std::make_unique<SDL_GPUVertexBufferDescription[]>(buffers_size);
@@ -188,8 +205,8 @@ static int call_constructor(lua_State* lua)
 		if (lua_getfield(lua, top, "rate") != LUA_TSTRING)
 		{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'rate' field of 'buffers' subtable #%d to be a string, was %s", i, luaL_typename(lua, top + 3))); }
 
-		if (auto it = rates.find(lua_tostring(lua, top + 3)); it == rates.end())
-		{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'rate' field of 'buffers' subtable #%d to be either 'vertex' or 'instance', was %s", i, lua_tostring(lua, top + 3))); }
+		if (auto it = rates.find(lua_tostringview(lua, top + 3)); it == rates.end())
+		{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'rate' field of 'buffers' subtable #%d to be either 'vertex' or 'instance', was %s", i, lua_tostringview(lua, top + 3))); }
 		else
 		{ buffer.input_rate = it->second; }
 
@@ -197,16 +214,18 @@ static int call_constructor(lua_State* lua)
 		lua_pop(lua, 1);
 	}
 
+	// First arg field 'primitives' is our type of primitive to draw.
 	lua_getfield(lua, 2, "primitive");
 	if (lua_type(lua, 7) != LUA_TSTRING)
 	{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'primitive' field to be a string, was %s", luaL_typename(lua, 7))); }
 
 	SDL_GPUPrimitiveType primitive;
-	if (auto it = primitives.find(lua_tostring(lua, 7)); it == primitives.end())
-	{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'primitive' field to be a valid primitive type, was %s", lua_tostring(lua, 7))); }
+	if (auto it = primitives.find(lua_tostringview(lua, 7)); it == primitives.end())
+	{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'primitive' field to be a valid primitive type, was %s", lua_tostringview(lua, 7))); }
 	else
 	{ primitive = it->second; }
 
+	// First arg field 'targets' is our render targets.
 	lua_getfield(lua, 2, "targets");
 	uint32_t targets_size = lua_getlen(lua, 8);
 	auto targets = std::make_unique<SDL_GPUColorTargetDescription[]>(targets_size);
@@ -219,6 +238,7 @@ static int call_constructor(lua_State* lua)
 		if (lua_getfield(lua, top, "format") != LUA_TSTRING)
 		{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "expected 'format' field of 'targets' subtable #%d to be a string, was %s", i, luaL_typename(lua, top + 3))); }
 
+		// render target format "display" means draw to the screen directly.
 		if (lua_tostringview(lua, top + 1) == "display")
 		{ target.format = SDL_GetGPUSwapchainTextureFormat(program, program); }
 		else
@@ -228,6 +248,7 @@ static int call_constructor(lua_State* lua)
 		lua_pop(lua, 1);
 	}
 
+	// Fill out our pipeline creation information.
 	SDL_GPUGraphicsPipelineCreateInfo info
 	{
 		.vertex_shader = vertex,
@@ -259,21 +280,22 @@ static int call_constructor(lua_State* lua)
 		},
 	};
 
+	// Create our graphics pipeline.
 	auto& pipeline = *lua_newudata<SDL_GPUGraphicsPipeline*>(lua, 2);
 	pipeline = SDL_CreateGPUGraphicsPipeline(program, &info);
+	luaL_setmetatable(lua, "Pipeline");
 
 	if (pipeline == nullptr)
 	{ return luaL_error(lua, "%s", SDL_GetError()); }
 
-	lua_pushvalue(lua, 1);
-	lua_setmetatable(lua, -2);
-
+	// Prevent our shaders from getting garbage-collected.
 	lua_pushvalue(lua, 3);
 	lua_setiuservalue(lua, -2, LUA_VERTEX_USERVALUE);
 
 	lua_pushvalue(lua, 4);
 	lua_setiuservalue(lua, -2, LUA_FRAGMENT_USERVALUE);
 
+	// Return our graphics pipeline.
 	return 1;
 }
 
@@ -282,14 +304,27 @@ static int call_finalizer(lua_State* lua)
 {
 	auto& program = *lua_getprogram(lua);
 
+	// Destroy our graphics pipeline.
 	auto pipeline = lua_checkpipeline(lua, 1);
 	SDL_ReleaseGPUGraphicsPipeline(program, pipeline);
 
+	// Allow our shaders to get garbage-collected.
 	lua_pushnil(lua);
 	lua_setiuservalue(lua, 1, LUA_VERTEX_USERVALUE);
 
 	lua_pushnil(lua);
 	lua_setiuservalue(lua, 1, LUA_FRAGMENT_USERVALUE);
+
+	return 0;
+}
+
+
+static int call_bind(lua_State* lua)
+{
+	auto& pipeline = lua_checkpipeline(lua, 1);
+	auto& pass = lua_checkrenderpass(lua, 2);
+
+	SDL_BindGPUGraphicsPipeline(pass, pipeline);
 
 	return 0;
 }

@@ -50,6 +50,10 @@ local PipelineInfo
 ---@class Pipeline
 Pipeline = {}
 
+---Bind this graphics pipeline to the given render pass.
+---@param pass RenderPass Render pass onto which to bind this pipeline.
+function Pipeline:bind(pass) end
+
 ---Construct a graphics pipeline instance.
 ---@param info PipelineInfo Information necessary to create a graphics pipeline.
 ---@return Pipeline # Newly constructed graphics pipeline instance.
@@ -75,8 +79,8 @@ CommandBuffer = {}
 function CommandBuffer:copypass() end
 
 ---Begin a [render pass](lua://RenderPass) on this command buffer.
+---@param pipeline Pipeline? The graphics pipeline to bind to this render pass.
 ---@return RenderPass
----@param pipeline Pipeline The graphics pipeline to bind to this render pass.
 function CommandBuffer:renderpass(pipeline) end
 
 ---@return CommandBuffer

@@ -24,6 +24,7 @@ int luaopen_renderpass(lua_State* lua)
 
 	if (luaL_newmetatable(lua, "RenderPass"))
 	{
+		// Fill metatable.
 		luaL_setfuncs(lua, metatable, 0);
 		lua_pushvalue(lua, -1);
 		lua_setfield(lua, -2, "__metatable");
@@ -35,9 +36,9 @@ int luaopen_renderpass(lua_State* lua)
 }
 
 
-SDL_GPURenderPass*& lua_checkrenderpass(lua_State* lua, int index)
+SDL_GPURenderPass*& lua_checkrenderpass(lua_State* lua, int arg)
 {
-	return *lua_checkudata<SDL_GPURenderPass*>(lua, index, "RenderPass");
+	return *lua_checkudata<SDL_GPURenderPass*>(lua, arg, "RenderPass");
 }
 
 
@@ -60,6 +61,7 @@ static int call_finalizer(lua_State* lua)
 	{
 		SDL_EndGPURenderPass(pass);
 		pass = nullptr;
+
 		return luaL_error(lua, "RenderPass %p was not closed properly (did you forget to add <close>)", lua_topointer(lua, 1));
 	}
 

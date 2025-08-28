@@ -6,6 +6,7 @@
 
 #include "../luax.hpp"
 #include "../debug.hpp"
+#include "../hashmap.hpp"
 #include "../program.hpp"
 
 
@@ -24,7 +25,7 @@ int luaopen_shader(lua_State* lua)
 		{ "__index", nullptr },
 		{ nullptr, nullptr },
 	};
-	
+
 	static const luaL_Reg callable[]
 	{
 		{ "__call", call_constructor },
@@ -34,12 +35,14 @@ int luaopen_shader(lua_State* lua)
 
 	if (luaL_newmetatable(lua, "Shader"))
 	{
+		// Fill metatable
 		luaL_setfuncs(lua, metatable, 0);
 		lua_pushvalue(lua, -1);
 		lua_setfield(lua, -2, "__index");
 		lua_pushvalue(lua, -1);
 		lua_setfield(lua, -2, "__metatable");
 
+		// Make metatable invokable
 		luaL_newlib(lua, callable);
 		lua_pushvalue(lua, -1);
 		lua_setfield(lua, -2, "__metatable");
@@ -50,43 +53,51 @@ int luaopen_shader(lua_State* lua)
 }
 
 
-SDL_GPUShader* lua_checkshader(lua_State* lua, int index)
+SDL_GPUShader* lua_checkshader(lua_State* lua, int arg)
 {
-	return lua_checkudata<SDL_GPUShader>(lua, index, "Shader");
+	return lua_checkudata<SDL_GPUShader>(lua, arg, "Shader");
 }
 
 
 static int call_constructor(lua_State* lua)
 {
+	static const Game::HashMap<std::string, SDL_GPUShaderStage> stages
+	{
+		{ "vertex",   SDL_GPU_SHADERSTAGE_VERTEX },
+		{ "fragment", SDL_GPU_SHADERSTAGE_FRAGMENT },
+	};
+
 	auto& program = *lua_getprogram(lua);
 
+	// 1) Metatable, 2) filename, 3) info table
+	lua_settop(lua, 3);
+
+	// First argument is a filename string.
 	auto filename = luaL_checkstring(lua, 2);
 
-	if (!lua_istable(lua, 3))
-	{ return luaL_typeerror(lua, 2, "table"); }
-
+	// Second arg field 'entry' is an entry point name.
 	if (lua_getfield(lua, 3, "entry") != LUA_TSTRING)
 	{ return luaL_argerror(lua, 3, "expected 'entry' field to be a string"); }
 	auto entrypoint = lua_tostring(lua, 4);
 
+	// Second arg field 'stage' is a shader stage name.
 	if (lua_getfield(lua, 3, "stage") != LUA_TSTRING)
 	{ return luaL_argerror(lua, 3, "expected 'stage' field to be a string"); }
-	auto stage_str = lua_tostring(lua, 5);
 
 	SDL_GPUShaderStage stage;
-	if (strcmp(stage_str, "vertex") == 0)
-	{ stage = SDL_GPU_SHADERSTAGE_VERTEX; }
-	else if (strcmp(stage_str, "fragment") == 0)
-	{ stage = SDL_GPU_SHADERSTAGE_FRAGMENT; }
+	if (auto it = stages.find(lua_tostringview(lua, 5)); it == stages.end())
+	{ return luaL_argerror(lua, 3, lua_pushfstring(lua, "invalid shader stage '%s'", lua_tostringview(lua, 5))); }
 	else
-	{ return luaL_argerror(lua, 3, lua_pushfstring(lua, "invalid shader stage '%s'", stage_str)); }
+	{ stage = it->second; }
 
+	// Load shader source file.
 	auto source_data = SDL_LoadFile(filename, nullptr);
 	auto source = (char*)source_data;
 
 	if (source_data == nullptr)
 	{ return luaL_error(lua, "%s", SDL_GetError()); }
 
+	// Fill out information about source code
 	SDL_ShaderCross_HLSL_Info source_info
 	{
 		.source = source,
@@ -96,16 +107,16 @@ static int call_constructor(lua_State* lua)
 		.name = filename,
 	};
 
+	// Compile shader into bytecode.
 	size_t code_size;
 	auto code_data = SDL_ShaderCross_CompileDXILFromHLSL(&source_info, &code_size);
 	auto code = (Uint8*)code_data;
+	SDL_free(source_data);
 
 	if (code_data == nullptr)
-	{
-		SDL_free(source_data);
-		return luaL_error(lua, "%s", SDL_GetError());
-	}
+	{ return luaL_error(lua, "%s", SDL_GetError()); }
 
+	// Fill out information about bytecode.
 	SDL_GPUShaderCreateInfo code_info
 	{
 		.code_size = code_size,
@@ -114,15 +125,14 @@ static int call_constructor(lua_State* lua)
 		.format = SDL_GPU_SHADERFORMAT_DXIL,
 		.stage = stage,
 	};
-	auto shader = SDL_CreateGPUShader(program, &code_info);
 
-	SDL_free(source_data);
+	// Create our shader.
+	auto shader = SDL_CreateGPUShader(program, &code_info);
 	SDL_free(code_data);
 
+	// Push & return our shader.
 	lua_pushlightuserdata(lua, shader);
-	lua_rotate(lua, 1, -1);
-	lua_setmetatable(lua, -2);
-
+	luaL_setmetatable(lua, "Shader");
 	return 1;
 }
 
@@ -130,7 +140,8 @@ static int call_constructor(lua_State* lua)
 static int call_finalizer(lua_State* lua)
 {
 	auto& program = *lua_getprogram(lua);
-	auto shader = (SDL_GPUShader*)luaL_checkudata(lua, 1, "Shader");
+
+	auto shader = lua_checkudata<SDL_GPUShader>(lua, 1, "Shader");
 	SDL_ReleaseGPUShader(program, shader);
 	return 0;
 }

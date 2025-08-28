@@ -6,9 +6,26 @@
 #include <lua.hpp>
 
 
+/**
+ * @brief Library loading function for render pass type.
+ * 
+ * @note Meant to be used in conjunction with [`luaL_requiref`](https://www.lua.org/manual/5.4/manual.html#luaL_requiref).
+ * 
+ * @param lua Lua state.
+ * @return Number of returned values.
+ */
 int luaopen_renderpass(lua_State* lua);
 
-SDL_GPURenderPass*& lua_checkrenderpass(lua_State* lua, int index);
+/**
+ * [-0, +0, v]
+ * 
+ * Check whether the function argument arg is a render pass and return it if so.
+ * 
+ * @param lua Lua state.
+ * @param arg Argument index to check.
+ * @return A pointer to a render pass.
+ */
+SDL_GPURenderPass*& lua_checkrenderpass(lua_State* lua, int arg);
 
 
 #endif // GAME_RENDERPASS_HEADER

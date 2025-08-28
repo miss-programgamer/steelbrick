@@ -82,9 +82,9 @@ T* lua_newudata(lua_State* lua, int nuvalue = 0)
  * @return A pointer to the userdata's memory block.
  */
 template<typename T>
-T* lua_checkudata(lua_State* lua, int index, const char* tname)
+T* lua_checkudata(lua_State* lua, int arg, const char* tname)
 {
-	return (T*)luaL_checkudata(lua, index, tname);
+	return (T*)luaL_checkudata(lua, arg, tname);
 }
 
 
