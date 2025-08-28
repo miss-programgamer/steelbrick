@@ -259,7 +259,7 @@ static int call_constructor(lua_State* lua)
 		},
 	};
 
-	auto& pipeline = *(SDL_GPUGraphicsPipeline**)lua_newuserdatauv(lua, sizeof(SDL_GPUGraphicsPipeline*), 2);
+	auto& pipeline = *lua_newudata<SDL_GPUGraphicsPipeline*>(lua, 2);
 	pipeline = SDL_CreateGPUGraphicsPipeline(program, &info);
 
 	if (pipeline == nullptr)

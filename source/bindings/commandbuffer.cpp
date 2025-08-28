@@ -66,7 +66,7 @@ static int call_constructor(lua_State* lua)
 {
 	auto& program = *lua_getprogram(lua);
 
-	auto& commands = lua_newudata<SDL_GPUCommandBuffer*>(lua, nullptr, 1);
+	auto& commands = *lua_newudata<SDL_GPUCommandBuffer*>(lua, 1);
 	commands = SDL_AcquireGPUCommandBuffer(program);
 
 	if (commands == nullptr)
@@ -138,8 +138,9 @@ static int call_copypass(lua_State* lua)
 {
 	auto& commands = lua_checkcommandbuffer(lua, 1);
 
-	auto& pass = lua_newudata<SDL_GPUCopyPass*>(lua, "CopyPass");
+	auto& pass = *lua_newudata<SDL_GPUCopyPass*>(lua);
 	pass = SDL_BeginGPUCopyPass(commands);
+	luaL_setmetatable(lua, "CopyPass");
 
 	return 1;
 }
@@ -155,8 +156,10 @@ static int call_renderpass(lua_State* lua)
 	lua_pop(lua, 1);
 
 	SDL_GPUColorTargetInfo target_info { .texture = texture };
-	auto& pass = lua_newudata<SDL_GPURenderPass*>(lua, "RenderPass");
+	auto& pass = *lua_newudata<SDL_GPURenderPass*>(lua);
 	pass = SDL_BeginGPURenderPass(commands, &target_info, 1, nullptr);
+	luaL_setmetatable(lua, "RenderPass");
+
 	SDL_BindGPUGraphicsPipeline(pass, pipeline);
 
 	return 1;
