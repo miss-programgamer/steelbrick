@@ -36,6 +36,15 @@ int luaopen_copypass(lua_State* lua)
 }
 
 
+SDL_GPUCopyPass* lua_testcopypass(lua_State* lua, int arg)
+{
+	if (auto ptr = luaL_testudata(lua, arg, "CopyPass"))
+	{ return *(SDL_GPUCopyPass**)ptr; }
+	else
+	{ return nullptr; }
+}
+
+
 SDL_GPUCopyPass*& lua_checkcopypass(lua_State* lua, int arg)
 {
 	return *lua_checkudata<SDL_GPUCopyPass*>(lua, arg, "CopyPass");

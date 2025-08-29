@@ -47,6 +47,15 @@ int luaopen_color(lua_State* lua)
 }
 
 
+SDL_FColor* lua_testcolor(lua_State* lua, int arg)
+{
+	if (auto ptr = luaL_testudata(lua, arg, "Color"))
+	{ return (SDL_FColor*)ptr; }
+	else
+	{ return nullptr; }
+}
+
+
 SDL_FColor& lua_checkcolor(lua_State* lua, int arg)
 {
 	return *lua_checkudata<SDL_FColor>(lua, arg, "Color");
@@ -74,6 +83,17 @@ static int call_constructor(lua_State* lua)
 		color.a = luaL_optnumber(lua, -1, 1.0);
 
 		lua_pop(lua, 4);
+	}
+	else if (lua_type(lua, 2) == LUA_TSTRING)
+	{
+		auto name = lua_tostringview(lua, 2);
+
+		if (name == "black")
+		{ color = SDL_FColor{ 0, 0, 0, 1 }; }
+		else if (name == "white")
+		{ color = SDL_FColor{ 1, 1, 1, 1 }; }
+		else
+		{ return luaL_argerror(lua, 1, lua_pushfstring(lua, "unknown color name %s", name.data())); }
 	}
 	else
 	{

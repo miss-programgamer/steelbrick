@@ -3,6 +3,7 @@
 
 #include "../luax.hpp"
 #include "../program.hpp"
+#include "color.hpp"
 #include "pipeline.hpp"
 
 
@@ -55,6 +56,15 @@ int luaopen_commandbuffer(lua_State* lua)
 	}
 
 	return 1;
+}
+
+
+SDL_GPUCommandBuffer* lua_testcommandbuffer(lua_State* lua, int arg)
+{
+	if (auto ptr = luaL_testudata(lua, arg, "CommandBuffer"))
+	{ return *(SDL_GPUCommandBuffer**)ptr; }
+	else
+	{ return nullptr; }
 }
 
 
@@ -146,19 +156,53 @@ static int call_copypass(lua_State* lua)
 static int call_renderpass(lua_State* lua)
 {
 	auto& commands = lua_checkcommandbuffer(lua, 1);
-	auto pipeline = lua_testpipeline(lua, 2);
 
 	lua_getiuservalue(lua, 1, 1);
 	auto texture = (SDL_GPUTexture*)lua_tointeger(lua, -1);
 	lua_pop(lua, 1);
 
-	SDL_GPUColorTargetInfo target_info { .texture = texture };
+	SDL_GPUColorTargetInfo target_info{};
+	if (auto color = lua_testcolor(lua, 2))
+	{
+		target_info = SDL_GPUColorTargetInfo
+		{
+			.texture = texture,
+			.clear_color = *color,
+			.load_op = SDL_GPU_LOADOP_CLEAR,
+		};
+	}
+	else if (lua_isboolean(lua, 2))
+	{
+		if (lua_toboolean(lua, 2))
+		{
+			target_info = SDL_GPUColorTargetInfo
+			{
+				.texture = texture,
+				.clear_color = SDL_FColor{},
+				.load_op = SDL_GPU_LOADOP_CLEAR,
+			};
+		}
+		else
+		{
+			target_info = SDL_GPUColorTargetInfo
+			{
+				.texture = texture,
+				.load_op = SDL_GPU_LOADOP_LOAD,
+			};
+		}
+	}
+	else
+	{
+		target_info = SDL_GPUColorTargetInfo
+		{
+			.texture = texture,
+			.load_op = SDL_GPU_LOADOP_DONT_CARE,
+		};
+	}
+
 	auto& pass = *lua_newudata<SDL_GPURenderPass*>(lua);
 	pass = SDL_BeginGPURenderPass(commands, &target_info, 1, nullptr);
 	luaL_setmetatable(lua, "RenderPass");
-
-	if (pipeline)
-	{ SDL_BindGPUGraphicsPipeline(pass, pipeline); }
 
 	return 1;
 }

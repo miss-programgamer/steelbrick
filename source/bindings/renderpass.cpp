@@ -36,6 +36,15 @@ int luaopen_renderpass(lua_State* lua)
 }
 
 
+SDL_GPURenderPass* lua_testrenderpass(lua_State* lua, int arg)
+{
+	if (auto ptr = luaL_testudata(lua, arg, "RenderPass"))
+	{ return *(SDL_GPURenderPass**)ptr; }
+	else
+	{ return nullptr; }
+}
+
+
 SDL_GPURenderPass*& lua_checkrenderpass(lua_State* lua, int arg)
 {
 	return *lua_checkudata<SDL_GPURenderPass*>(lua, arg, "RenderPass");

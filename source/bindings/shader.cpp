@@ -53,6 +53,15 @@ int luaopen_shader(lua_State* lua)
 }
 
 
+SDL_GPUShader* lua_testshader(lua_State* lua, int arg)
+{
+	if (auto ptr = luaL_testudata(lua, arg, "Shader"))
+	{ return (SDL_GPUShader*)ptr; }
+	else
+	{ return nullptr; }
+}
+
+
 SDL_GPUShader* lua_checkshader(lua_State* lua, int arg)
 {
 	return lua_checkudata<SDL_GPUShader>(lua, arg, "Shader");

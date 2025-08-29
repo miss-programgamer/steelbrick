@@ -7,22 +7,22 @@
 
 
 /**
- * @brief Library loading function for graphics pipeline type.
- * 
- * @note Meant to be used in conjunction with [`luaL_requiref`](https://www.lua.org/manual/5.4/manual.html#luaL_requiref).
+ * Library loading function for graphics pipeline type.
  * 
  * @param lua Lua state.
  * @return Number of returned values.
+ * 
+ * @note Meant to be used in conjunction with [`luaL_requiref`](https://www.lua.org/manual/5.4/manual.html#luaL_requiref).
  */
 int luaopen_pipeline(lua_State* lua);
 
 /**
  * [-0, +0, m]
  * 
- * Check whether the function argument arg is a graphics pipeline, then return it if so.
+ * Test whether the function argument arg is a graphics pipeline, then return it if so.
  * 
  * @param lua Lua state.
- * @param arg Argument index to check.
+ * @param arg Argument index to test.
  * @return A pointer to a graphics pipeline, or `nullptr` on failure.
  */
 SDL_GPUGraphicsPipeline* lua_testpipeline(lua_State* lua, int arg);

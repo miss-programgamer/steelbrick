@@ -5,13 +5,16 @@
 ---@alias DrawEvent fun(delta: number)
 
 
----Represents a color where each component is a normalized value.
+---Represents a color where each component is a value from 0 to 1.
 ---@class Color
 ---@field r number Red component of a color.
 ---@field g number Green component of a color.
 ---@field b number Blue component of a color.
 ---@field a number Alpha component of a color.
 Color = {}
+
+---Represents color components that can be passed to the color constructor.
+---@alias ColorParts { r: number?, g: number?, b: number?, a: number? }
 
 
 ---Construct a color from RGBA values.
@@ -28,8 +31,13 @@ function Color(v, a) end
 ---@return Color # The resulting color.
 function Color(r, g, b, a) end
 
+---Construct a color from its name.
+---@param name ColorName The name of a predefined color.
+---@return Color # The resulting color.
+function Color(name) end
+
 ---Construct a color from RGBA values.
----@param parts { r:number?, g:number?, b:number?, a:number? } Color components.
+---@param parts ColorParts Color components.
 ---@return Color # The resulting color.
 function Color(parts) end
 
@@ -108,13 +116,18 @@ CommandBuffer = {}
 function CommandBuffer:copypass() end
 
 ---Begin a [render pass](lua://RenderPass) on this command buffer.
----@param pipeline Pipeline? The graphics pipeline to bind to this render pass.
+---@param color (Color|boolean)? The clear color used by this render pass.
 ---@return RenderPass
-function CommandBuffer:renderpass(pipeline) end
+function CommandBuffer:renderpass(color) end
 
 ---@return CommandBuffer
 function CommandBuffer() end
 
+
+---Name of a predefined color.
+---@alias ColorName
+---| "black"
+---| "white"
 
 ---Stage of a shader (one of "vertex" or "fragment").
 ---@alias ShaderStage

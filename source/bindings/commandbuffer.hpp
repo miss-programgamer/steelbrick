@@ -7,14 +7,25 @@
 
 
 /**
- * @brief Library loading function for command buffer type.
- * 
- * @note Meant to be used in conjunction with [`luaL_requiref`](https://www.lua.org/manual/5.4/manual.html#luaL_requiref).
+ * Library loading function for command buffer type.
  * 
  * @param lua Lua state.
  * @return Number of returned values.
+ * 
+ * @note Meant to be used in conjunction with [`luaL_requiref`](https://www.lua.org/manual/5.4/manual.html#luaL_requiref).
  */
 int luaopen_commandbuffer(lua_State* lua);
+
+/**
+ * [-0, +0, m]
+ * 
+ * Test whether the function argument arg is a command buffer, then return it if so.
+ * 
+ * @param lua Lua state.
+ * @param arg Argument index to test.
+ * @return A pointer to a command buffer, or `nullptr` on failure.
+ */
+SDL_GPUCommandBuffer* lua_testcommandbuffer(lua_State* lua, int arg);
 
 /**
  * [-0, +0, v]
