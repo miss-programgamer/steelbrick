@@ -18,6 +18,7 @@ endif()
 add_library(gamelib STATIC)
 target_sources(gamelib
 	PUBLIC FILE_SET HEADERS BASE_DIRS "source" FILES
+		"source/sdlx.hpp"
 		"source/luax.hpp"
 		"source/debug.hpp"
 		"source/thash.hpp"
@@ -26,16 +27,19 @@ target_sources(gamelib
 		"source/bindings.hpp"
 		"source/bindings/color.hpp"
 		"source/bindings/shader.hpp"
+		"source/bindings/texture.hpp"
 		"source/bindings/pipeline.hpp"
 		"source/bindings/copypass.hpp"
 		"source/bindings/renderpass.hpp"
 		"source/bindings/commandbuffer.hpp"
 	PRIVATE
+		"source/sdlx.cpp"
 		"source/luax.cpp"
 		"source/program.cpp"
 		"source/bindings.cpp"
 		"source/bindings/color.cpp"
 		"source/bindings/shader.cpp"
+		"source/bindings/texture.cpp"
 		"source/bindings/pipeline.cpp"
 		"source/bindings/copypass.cpp"
 		"source/bindings/renderpass.cpp"

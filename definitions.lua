@@ -59,6 +59,15 @@ Shader = {}
 function Shader(filename, info) end
 
 
+---@class Texture
+Texture = {}
+
+---@return Texture
+---@param width integer
+---@param height integer
+function Texture(width, height) end
+
+
 ---Desribes a buffer for a graphics pipeline.
 ---@class BufferDesc
 ---@field slot integer Which slot this buffer will be bound to.
@@ -101,6 +110,11 @@ function Pipeline(info) end
 ---@class CopyPass
 local CopyPass
 
+---Upload data from a transfer buffer into a given texture.
+---@param filename string
+---@param texture Texture
+function CopyPass:upload(filename, texture) end
+
 
 ---Render pass on a command buffer for rendering graphics on the GPU.
 ---@class RenderPass
@@ -120,8 +134,10 @@ function CommandBuffer:copypass() end
 ---@return RenderPass
 function CommandBuffer:renderpass(color) end
 
+---Construct a command buffer instance.
+---@param target "display"? Specify whether this command buffer targets the main display.
 ---@return CommandBuffer
-function CommandBuffer() end
+function CommandBuffer(target) end
 
 
 ---Name of a predefined color.

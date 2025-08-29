@@ -7,6 +7,9 @@
 #include "pipeline.hpp"
 
 
+#define LUA_TEXTURE_USERVALUE 1
+
+
 static int call_constructor(lua_State* lua);
 
 static int call_destructor(lua_State* lua);
@@ -82,17 +85,21 @@ static int call_constructor(lua_State* lua)
 	auto& commands = *lua_newudata<SDL_GPUCommandBuffer*>(lua, 1);
 	commands = SDL_AcquireGPUCommandBuffer(program);
 	luaL_setmetatable(lua, "CommandBuffer");
+	auto commands_index = lua_gettop(lua);
 
 	if (commands == nullptr)
 	{ return luaL_error(lua, SDL_GetError()); }
 
 	// Store our swapchain target texture for later.
-	SDL_GPUTexture* texture;
-	if (!SDL_WaitAndAcquireGPUSwapchainTexture(commands, program, &texture, nullptr, nullptr))
-	{ return luaL_error(lua, SDL_GetError()); }
+	if (lua_isstring(lua, 2) && lua_tostringview(lua, 2) == "display")
+	{
+		SDL_GPUTexture* texture;
+		if (!SDL_WaitAndAcquireGPUSwapchainTexture(commands, program, &texture, nullptr, nullptr))
+		{ return luaL_error(lua, SDL_GetError()); }
 
-	lua_pushinteger(lua, (uintptr_t)texture);
-	lua_setiuservalue(lua, 2, 1);
+		lua_pushinteger(lua, (uintptr_t)texture);
+		lua_setiuservalue(lua, commands_index, LUA_TEXTURE_USERVALUE);
+	}
 
 	return 1;
 }
@@ -116,7 +123,7 @@ static int call_finalizer(lua_State* lua)
 
 	if (commands != nullptr)
 	{
-		lua_getiuservalue(lua, 1, 1);
+		lua_getiuservalue(lua, 1, LUA_TEXTURE_USERVALUE);
 		auto texture = (SDL_GPUTexture*)lua_tointeger(lua, -1);
 		lua_pop(lua, 1);
 
@@ -157,7 +164,7 @@ static int call_renderpass(lua_State* lua)
 {
 	auto& commands = lua_checkcommandbuffer(lua, 1);
 
-	lua_getiuservalue(lua, 1, 1);
+	lua_getiuservalue(lua, 1, LUA_TEXTURE_USERVALUE);
 	auto texture = (SDL_GPUTexture*)lua_tointeger(lua, -1);
 	lua_pop(lua, 1);
 

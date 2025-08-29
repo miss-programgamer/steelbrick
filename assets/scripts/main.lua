@@ -38,13 +38,17 @@ local pipeline = Pipeline{
 	},
 }
 
+local texture = Texture(32, 32)
+
+do local commands <close> = CommandBuffer()
+	do local pass <close> = commands:copypass()
+		pass:upload("assets/textures/brick.png", texture)
+	end
+end
+
 ---@type DrawEvent
 function draw(delta)
-	local commands <close> = CommandBuffer()
-
-	do local pass <close> = commands:copypass()
-		-- copy data to GPU
-	end
+	local commands <close> = CommandBuffer "display"
 
 	do local pass <close> = commands:renderpass(Color "black")
 		pipeline:bind(pass)
