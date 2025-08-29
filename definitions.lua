@@ -59,12 +59,30 @@ Shader = {}
 function Shader(filename, info) end
 
 
+---@class SamplerInfo
+---@field min SamplerFilter Minification filter to use.
+---@field mag SamplerFilter Magnification filter to use.
+---@field mipmap SamplerMipmapFilter Mipmap filter to use.
+---@field umode SamplerAddressMode Addressing mode for the U texture coords.
+---@field vmode SamplerAddressMode Addressing mode for the V texture coords.
+---@field wmode SamplerAddressMode Addressing mode for the W texture coords.
+---@field anisotropy boolean? Whether anisotropic filtering is enabled. Default is false.
+local SamplerInfo
+
+---@class Sampler
+Sampler = {}
+
+---@param info SamplerInfo
+---@return Sampler
+function Sampler(info) end
+
+
 ---@class Texture
 Texture = {}
 
----@return Texture
 ---@param width integer
 ---@param height integer
+---@return Texture
 function Texture(width, height) end
 
 
@@ -149,6 +167,22 @@ function CommandBuffer(target) end
 ---@alias ShaderStage
 ---| "vertex"			# Vertex shader stage.
 ---| "fragment"			# Fragment shader stage.
+
+---Functions to use in minification/magnification filters for samplers.
+---@alias SamplerFilter
+---| "nearest"
+---| "linear"
+
+---Functions to use in mipmap filters for samplers.
+---@alias SamplerMipmapFilter
+---| "nearest"
+---| "linear"
+
+---Functions to interpret UV(W) coordinates outside [0,1).
+---@alias SamplerAddressMode
+---| "repeat"			# Coordinates simply repeat/wrap around.
+---| "mirror"			# Same as 'repeat' except coords alternates between mirrored & normal.
+---| "clamp"			# Coordinates are clamped to never go outside the [0,1) range.
 
 ---Primitive types which are available to draw with a pipeline.
 ---@alias PrimitiveType

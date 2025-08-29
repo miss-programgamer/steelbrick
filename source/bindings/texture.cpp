@@ -92,6 +92,7 @@ static int call_constructor(lua_State* lua)
 
 	auto& texture = *lua_newudata<SDL_GPUTexture*>(lua, 2);
 	luaL_setmetatable(lua, "Texture");
+	auto texture_index = lua_gettop(lua);
 
 	SDL_GPUTextureCreateInfo info
 	{
@@ -108,9 +109,9 @@ static int call_constructor(lua_State* lua)
 	{ return luaL_error(lua, "%s", SDL_GetError()); }
 
 	lua_pushinteger(lua, width);
-	lua_setiuservalue(lua, 4, LUA_WIDTH_USERVALUE);
+	lua_setiuservalue(lua, texture_index, LUA_WIDTH_USERVALUE);
 	lua_pushinteger(lua, height);
-	lua_setiuservalue(lua, 4, LUA_HEIGHT_USERVALUE);
+	lua_setiuservalue(lua, texture_index, LUA_HEIGHT_USERVALUE);
 
 	return 1;
 }

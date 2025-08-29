@@ -20,8 +20,11 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
 	auto& program = *(Program**)appstate;
 
-	SDL_Init(SDL_INIT_VIDEO);
-	SDL_ShaderCross_Init();
+	if (!SDL_Init(SDL_INIT_VIDEO))
+	{ SDL_LogError(0, "%s", SDL_GetError()); }
+
+	if (!SDL_ShaderCross_Init())
+	{ SDL_LogError(0, "%s", SDL_GetError()); }
 
 	try
 	{

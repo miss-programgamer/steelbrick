@@ -38,6 +38,16 @@ local pipeline = Pipeline{
 	},
 }
 
+local sampler = Sampler{
+	min = "linear",
+	mag = "nearest",
+	mipmap = "linear",
+	umode = "repeat",
+	vmode = "repeat",
+	wmode = "repeat",
+	anisotropy = true,
+}
+
 local texture = Texture(32, 32)
 
 do local commands <close> = CommandBuffer()

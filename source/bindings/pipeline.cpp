@@ -284,16 +284,17 @@ static int call_constructor(lua_State* lua)
 	auto& pipeline = *lua_newudata<SDL_GPUGraphicsPipeline*>(lua, 2);
 	pipeline = SDL_CreateGPUGraphicsPipeline(program, &info);
 	luaL_setmetatable(lua, "Pipeline");
+	auto pipeline_index = lua_gettop(lua);
 
 	if (pipeline == nullptr)
 	{ return luaL_error(lua, "%s", SDL_GetError()); }
 
 	// Prevent our shaders from getting garbage-collected.
 	lua_pushvalue(lua, 3);
-	lua_setiuservalue(lua, -2, LUA_VERTEX_USERVALUE);
+	lua_setiuservalue(lua, pipeline_index, LUA_VERTEX_USERVALUE);
 
 	lua_pushvalue(lua, 4);
-	lua_setiuservalue(lua, -2, LUA_FRAGMENT_USERVALUE);
+	lua_setiuservalue(lua, pipeline_index, LUA_FRAGMENT_USERVALUE);
 
 	// Return our graphics pipeline.
 	return 1;

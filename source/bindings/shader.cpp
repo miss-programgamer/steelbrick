@@ -56,15 +56,15 @@ int luaopen_shader(lua_State* lua)
 SDL_GPUShader* lua_testshader(lua_State* lua, int arg)
 {
 	if (auto ptr = luaL_testudata(lua, arg, "Shader"))
-	{ return (SDL_GPUShader*)ptr; }
+	{ return *(SDL_GPUShader**)ptr; }
 	else
 	{ return nullptr; }
 }
 
 
-SDL_GPUShader* lua_checkshader(lua_State* lua, int arg)
+SDL_GPUShader*& lua_checkshader(lua_State* lua, int arg)
 {
-	return lua_checkudata<SDL_GPUShader>(lua, arg, "Shader");
+	return *lua_checkudata<SDL_GPUShader*>(lua, arg, "Shader");
 }
 
 
@@ -118,30 +118,38 @@ static int call_constructor(lua_State* lua)
 
 	// Compile shader into bytecode.
 	size_t code_size;
-	auto code_data = SDL_ShaderCross_CompileDXILFromHLSL(&source_info, &code_size);
+	auto code_data = SDL_ShaderCross_CompileSPIRVFromHLSL(&source_info, &code_size);
 	auto code = (Uint8*)code_data;
 	SDL_free(source_data);
 
 	if (code_data == nullptr)
 	{ return luaL_error(lua, "%s", SDL_GetError()); }
 
+	// Create a pointer to our shader.
+	auto& shader = *lua_newudata<SDL_GPUShader*>(lua);
+	luaL_setmetatable(lua, "Shader");
+
 	// Fill out information about bytecode.
+	auto props = SDL_CreateProperties();
+	auto debug_name = lua_pushfstring(lua, "%s (%s)", filename, lua_tostring(lua, 5));
+	SDL_SetStringProperty(props, SDL_PROP_GPU_SHADER_CREATE_NAME_STRING, debug_name);
 	SDL_GPUShaderCreateInfo code_info
 	{
 		.code_size = code_size,
 		.code = code,
 		.entrypoint = entrypoint,
-		.format = SDL_GPU_SHADERFORMAT_DXIL,
+		.format = SDL_GPU_SHADERFORMAT_SPIRV,
 		.stage = stage,
+		.props = props,
 	};
 
 	// Create our shader.
-	auto shader = SDL_CreateGPUShader(program, &code_info);
+	shader = SDL_CreateGPUShader(program, &code_info);
+	SDL_DestroyProperties(props);
 	SDL_free(code_data);
+	lua_pop(lua, 1);
 
-	// Push & return our shader.
-	lua_pushlightuserdata(lua, shader);
-	luaL_setmetatable(lua, "Shader");
+	// Return our shader.
 	return 1;
 }
 
@@ -150,7 +158,8 @@ static int call_finalizer(lua_State* lua)
 {
 	auto& program = *lua_getprogram(lua);
 
-	auto shader = lua_checkudata<SDL_GPUShader>(lua, 1, "Shader");
+	auto shader = *lua_checkudata<SDL_GPUShader*>(lua, 1, "Shader");
 	SDL_ReleaseGPUShader(program, shader);
+
 	return 0;
 }

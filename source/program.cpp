@@ -18,8 +18,12 @@ Program::Program(int argc, char** argv)
 	if (window == nullptr)
 	{ throw std::exception(SDL_GetError()); }
 
+	for (int i = 0; i < SDL_GetNumGPUDrivers(); ++i)
+	{ SDL_LogInfo(0, "Available graphics driver: %s", SDL_GetGPUDriver(i)); }
+
 	// Create a handle to our GPU device.
-	device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_DXIL, debug, nullptr);
+	static const auto& formats = SDL_GPU_SHADERFORMAT_DXIL|SDL_GPU_SHADERFORMAT_SPIRV;
+	device = SDL_CreateGPUDevice(formats, debug, "vulkan");
 
 	if (device == nullptr)
 	{

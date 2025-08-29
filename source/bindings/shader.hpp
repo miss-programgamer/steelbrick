@@ -36,7 +36,7 @@ SDL_GPUShader* lua_testshader(lua_State* lua, int arg);
  * @param arg Argument index to check.
  * @return A pointer to a shader.
  */
-SDL_GPUShader* lua_checkshader(lua_State* lua, int arg);
+SDL_GPUShader*& lua_checkshader(lua_State* lua, int arg);
 
 
 #endif // GAME_BINDINGS_SHADER_HEADER
