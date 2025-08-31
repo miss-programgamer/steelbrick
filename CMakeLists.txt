@@ -8,6 +8,7 @@ find_package(SDL3 3.2 REQUIRED)
 find_package(SDL3_image 3.2 REQUIRED)
 find_package(SDL3_shadercross REQUIRED)
 find_package(Lua 5.4 REQUIRED)
+find_package(Catch2 3)
 
 if(LUA_FOUND AND NOT TARGET Lua::Lua)
 	add_library(Lua::Lua INTERFACE IMPORTED)
@@ -20,9 +21,11 @@ target_sources(gamelib
 	PUBLIC FILE_SET HEADERS BASE_DIRS "source" FILES
 		"source/sdlx.hpp"
 		"source/luax.hpp"
+		"source/json.hpp"
 		"source/debug.hpp"
 		"source/thash.hpp"
 		"source/hashmap.hpp"
+		"source/iostream.hpp"
 		"source/program.hpp"
 		"source/bindings.hpp"
 		"source/bindings/color.hpp"
@@ -36,6 +39,8 @@ target_sources(gamelib
 	PRIVATE
 		"source/sdlx.cpp"
 		"source/luax.cpp"
+		"source/json.cpp"
+		"source/iostream.cpp"
 		"source/program.cpp"
 		"source/bindings.cpp"
 		"source/bindings/color.cpp"
@@ -57,9 +62,14 @@ target_link_libraries(gamelib PUBLIC
 add_executable(game "source/main.cpp")
 target_link_libraries(game PRIVATE SDL3::SDL3 gamelib)
 
-if(OPTION_BUILD_TESTS)
+if(OPTION_BUILD_TESTS AND TARGET Catch2::Catch2WithMain)
+	add_executable(JsonTests "tests/json.cpp")
+	target_link_libraries(JsonTests PRIVATE gamelib Catch2::Catch2WithMain)
+
 	include(CTest)
-	enable_testing()
+	include(Catch)
+
+	catch_discover_tests(JsonTests)
 endif()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

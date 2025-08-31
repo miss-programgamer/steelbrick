@@ -18,7 +18,7 @@ local pipeline = Pipeline{
 	buffers = {
 		{
 			slot = 0,
-			pitch = 24,
+			pitch = 20,
 			rate = "vertex",
 		},
 	},
@@ -26,14 +26,14 @@ local pipeline = Pipeline{
 		{
 			location = 0,
 			buffer = 0,
-			format = "float4",
+			format = "float3",
 			offset = 0,
 		},
 		{
 			location = 1,
 			buffer = 0,
 			format = "float2",
-			offset = 16,
+			offset = 12,
 		},
 	},
 }

@@ -1,6 +1,6 @@
 struct vInput
 {
-	float4 position : SV_Position;
+	float3 position : SV_Position;
 	float2 texcoord : TEXCOORD0;
 };
 
@@ -19,7 +19,7 @@ struct fInput
 vOutput vMain(vInput input)
 {
 	vOutput output;
-	output.position = input.position;
+	output.position = float4(input.position, 1);
 	output.texcoord = input.texcoord;
 	return output;
 }
