@@ -8,46 +8,13 @@
 	JSON CHUNK API
 ================================================== */
 
-struct JSN_ArrayData
-{
-	JSN_Element* first;
-	JSN_Element* last;
-	size_t count;
-};
-
-struct JSN_ObjectData
-{
-	JSN_Property* first;
-	JSN_Property* last;
-	size_t count;
-};
-
-
-struct JSN_Element
-{
-	JSN_Value value;
-	size_t index;
-	JSN_Array parent;
-	JSN_Element* next;
-};
-
-
-struct JSN_Property
-{
-	JSN_Value value;
-	const char* key;
-	size_t index;
-	JSN_Object parent;
-	JSN_Property* next;
-};
-
 struct JSN_Chunk
 {
 	JSN_Value root;
 };
 
 
-static void JSN_Release(JSN_Chunk* chunk, JSN_Value* value)
+static void FinalizeValue(JSN_Chunk* chunk, JSN_Value* value)
 {
 	switch (value->type)
 	{
@@ -57,46 +24,48 @@ static void JSN_Release(JSN_Chunk* chunk, JSN_Value* value)
 
 		case JSN_TYPE_ARRAY:
 		{
-			JSN_Array array = value->array_value;
+			JSN_Array* array = value->array_value;
 			for (JSN_Element* el = array->first; el; el = el->next)
-			{ JSN_Release(chunk, &el->value); }
+			{ FinalizeValue(chunk, &el->value); }
 			SDL_free(array);
 			break;
 		}
 
 		case JSN_TYPE_OBJECT:
 		{
-			JSN_Object object = value->object_value;
+			JSN_Object* object = value->object_value;
 			for (JSN_Property* prop = object->first; prop; prop = prop->next)
 			{
 				SDL_free((void*)prop->key);
-				JSN_Release(chunk, &prop->value);
+				FinalizeValue(chunk, &prop->value);
 			}
 			SDL_free(object);
 			break;
 		}
 	}
+
+	SDL_zerop(value);
 }
 
 
 JSN_Chunk* JSN_CreateChunk()
 {
 	JSN_Chunk* chunk = (JSN_Chunk*)SDL_malloc(sizeof(JSN_Chunk));
-	SDL_zero(*chunk);
+	SDL_zerop(chunk);
 	return chunk;
 }
 
 
 void JSN_DestroyChunk(JSN_Chunk* chunk)
 {
-	JSN_Release(chunk, &chunk->root);
+	FinalizeValue(chunk, &chunk->root);
 	SDL_free(chunk);
 }
 
 
 bool JSN_ChunkCopy(JSN_Chunk* chunk, JSN_Value* dest, const JSN_Value* src)
 {
-	JSN_Release(chunk, dest);
+	FinalizeValue(chunk, dest);
 	dest->type = src->type;
 
 	switch (src->type)
@@ -125,7 +94,7 @@ bool JSN_ChunkCopy(JSN_Chunk* chunk, JSN_Value* dest, const JSN_Value* src)
 		case JSN_TYPE_ARRAY:
 			for (JSN_Element* el = src->array_value->first; el; el = el->next)
 			{
-				JSN_Value* value = JSN_ChunkAddElement(chunk, dest, nullptr);
+				JSN_Value* value = JSN_ChunkAddElement(chunk, dest, NULL, NULL);
 				JSN_ChunkCopy(chunk, value, &el->value);
 			}
 			break;
@@ -133,7 +102,7 @@ bool JSN_ChunkCopy(JSN_Chunk* chunk, JSN_Value* dest, const JSN_Value* src)
 		case JSN_TYPE_OBJECT:
 			for (JSN_Property* prop = src->object_value->first; prop; prop = prop->next)
 			{
-				JSN_Value* value = JSN_ChunkAddProperty(chunk, dest, prop->key, SDL_strlen(prop->key), nullptr);
+				JSN_Value* value = JSN_ChunkAddProperty(chunk, dest, NULL, NULL, prop->key, SDL_strlen(prop->key));
 				JSN_ChunkCopy(chunk, value, &prop->value);
 			}
 			break;
@@ -151,22 +120,30 @@ JSN_Value* JSN_GetChunkRoot(JSN_Chunk* chunk)
 
 void JSN_ChunkSetNull(JSN_Chunk* chunk, JSN_Value* value)
 {
-	JSN_Release(chunk, value);
+	FinalizeValue(chunk, value);
 	value->type = JSN_TYPE_NULL;
 }
 
 
 void JSN_ChunkSetBool(JSN_Chunk* chunk, JSN_Value* value, bool bool_value)
 {
-	JSN_Release(chunk, value);
+	FinalizeValue(chunk, value);
 	value->type = JSN_TYPE_BOOL;
 	value->bool_value = bool_value;
 }
 
 
+void JSN_ChunkSetInteger(JSN_Chunk* chunk, JSN_Value* value, int64_t integer_value)
+{
+	FinalizeValue(chunk, value);
+	value->type = JSN_TYPE_INTEGER;
+	value->integer_value = integer_value;
+}
+
+
 void JSN_ChunkSetNumber(JSN_Chunk* chunk, JSN_Value* value, double number_value)
 {
-	JSN_Release(chunk, value);
+	FinalizeValue(chunk, value);
 	value->type = JSN_TYPE_NUMBER;
 	value->number_value = number_value;
 }
@@ -174,7 +151,7 @@ void JSN_ChunkSetNumber(JSN_Chunk* chunk, JSN_Value* value, double number_value)
 
 void JSN_ChunkSetString(JSN_Chunk* chunk, JSN_Value* value, const char* string_value, size_t length)
 {
-	JSN_Release(chunk, value);
+	FinalizeValue(chunk, value);
 	value->type = JSN_TYPE_STRING;
 	char* copy = (char*)SDL_calloc(length + 1, sizeof(char));
 	SDL_strlcpy(copy, string_value, length);
@@ -184,55 +161,58 @@ void JSN_ChunkSetString(JSN_Chunk* chunk, JSN_Value* value, const char* string_v
 
 void JSN_ChunkSetArray(JSN_Chunk* chunk, JSN_Value* value)
 {
-	JSN_Release(chunk, value);
+	FinalizeValue(chunk, value);
 	value->type = JSN_TYPE_ARRAY;
-	value->array_value = (JSN_Array)SDL_malloc(sizeof(JSN_ArrayData));
-	SDL_zero(*value->array_value);
+	value->array_value = (JSN_Array*)SDL_malloc(sizeof(JSN_Array));
+	SDL_zerop(value->array_value);
 }
 
 
 void JSN_ChunkSetObject(JSN_Chunk* chunk, JSN_Value* value)
 {
-	JSN_Release(chunk, value);
+	FinalizeValue(chunk, value);
 	value->type = JSN_TYPE_OBJECT;
-	value->object_value = (JSN_Object)SDL_malloc(sizeof(JSN_ObjectData));
-	SDL_zero(*value->object_value);
+	value->object_value = (JSN_Object*)SDL_malloc(sizeof(JSN_Object));
+	SDL_zerop(value->object_value);
 }
 
 
-JSN_Value* JSN_ChunkAddElement(JSN_Chunk* chunk, JSN_Value* value, JSN_Element* whence)
+JSN_Value* JSN_ChunkAddElement(JSN_Chunk* chunk, JSN_Value* array_value, JSN_Element* whence, size_t* index)
 {
-	SDL_assert(value && value->type == JSN_TYPE_ARRAY);
-	SDL_assert(!whence || whence->parent == value->array_value);
+	SDL_assert(array_value && array_value->type == JSN_TYPE_ARRAY);
+	SDL_assert(!whence || whence->parent == array_value->array_value);
 
-	JSN_Array array = value->array_value;
+	JSN_Array* array = array_value->array_value;
 
 	JSN_Element* el = (JSN_Element*)SDL_malloc(sizeof(JSN_Element));
-	SDL_zero(*el);
+	SDL_zerop(el);
 	el->parent = array;
 	el->index = array->count++;
 
 	if (whence == array->first)
 	{ array->first = el; }
 
-	if (whence == nullptr)
+	if (whence == NULL)
 	{ array->last = el; }
 
 	el->next = whence;
+
+	if (index)
+	{ *index = el->index; }
 
 	return &el->value;
 }
 
 
-JSN_Value* JSN_ChunkAddProperty(JSN_Chunk* chunk, JSN_Value* value, const char* key, size_t length, JSN_Property* whence)
+JSN_Value* JSN_ChunkAddProperty(JSN_Chunk* chunk, JSN_Value* object_value, JSN_Property* whence, size_t* index, const char* key, size_t length)
 {
-	SDL_assert(value && value->type == JSN_TYPE_OBJECT);
-	SDL_assert(!whence || whence->parent == value->object_value);
+	SDL_assert(object_value && object_value->type == JSN_TYPE_OBJECT);
+	SDL_assert(!whence || whence->parent == object_value->object_value);
 
-	JSN_Object object = value->object_value;
+	JSN_Object* object = object_value->object_value;
 
 	JSN_Property* prop = (JSN_Property*)SDL_malloc(sizeof(JSN_Property));
-	SDL_zero(*prop);
+	SDL_zerop(prop);
 	prop->parent = object;
 	prop->index = object->count++;
 
@@ -243,10 +223,13 @@ JSN_Value* JSN_ChunkAddProperty(JSN_Chunk* chunk, JSN_Value* value, const char* 
 	if (whence == object->first)
 	{ object->first = prop; }
 
-	if (whence == nullptr)
+	if (whence == NULL)
 	{ object->last = prop; }
 
 	prop->next = whence;
+
+	if (index)
+	{ *index = prop->index; }
 
 	return &prop->value;
 }
@@ -468,7 +451,7 @@ static JSN_TokenType NextToken(JSN_Tokenizer* tokenizer, SDL_IOStream* stream, c
 	JSON READER INTERFACE API
 ================================================== */
 
-bool JSN_Read(SDL_IOStream* stream, const JSN_ReaderInterface* iface, void* userdata)
+bool JSN_Read(SDL_IOStream* stream, const JSN_ReaderInterface* iface, void* userdata, bool closeio)
 {
 	JSN_Tokenizer tokenizer;
 	JSN_TokenizerInit(&tokenizer);
@@ -502,14 +485,14 @@ bool JSN_Read(SDL_IOStream* stream, const JSN_ReaderInterface* iface, void* user
 
 			case JSN_TOKEN_INTEGER:
 				value.type = JSN_TYPE_INTEGER;
-				value.integer_value = SDL_strtol(token_data, nullptr, 10);
+				value.integer_value = SDL_strtol(token_data, NULL, 10);
 				if (!iface->value(userdata, &value))
 				{ return false; }
 				break;
 
 			case JSN_TOKEN_NUMBER:
 				value.type = JSN_TYPE_NUMBER;
-				value.number_value = SDL_strtod(token_data, nullptr);
+				value.number_value = SDL_strtod(token_data, NULL);
 				if (!iface->value(userdata, &value))
 				{ return false; }
 				break;
@@ -541,7 +524,13 @@ bool JSN_Read(SDL_IOStream* stream, const JSN_ReaderInterface* iface, void* user
 	}
 
 	JSN_TokenizerQuit(&tokenizer);
-	return SDL_GetIOStatus(stream) == SDL_IO_STATUS_EOF;
+
+	bool success = SDL_GetIOStatus(stream) == SDL_IO_STATUS_EOF;
+
+	if (closeio)
+	{ SDL_CloseIO(stream); }
+
+	return success;
 }
 
 
@@ -556,7 +545,7 @@ struct JSN_ReaderFrame
 };
 
 
-struct JSN_Reader
+struct JSN_ChunkReader
 {
 	JSN_Chunk* result;
 	JSN_ReaderFrame* top;
@@ -565,21 +554,21 @@ struct JSN_Reader
 };
 
 
-static JSN_ReaderFrame* JSN_ReaderPush(JSN_Reader* reader)
+static JSN_ReaderFrame* JSN_ChunkReaderPush(JSN_ChunkReader* reader)
 {
 	JSN_ReaderFrame* frame = (JSN_ReaderFrame*)SDL_malloc(sizeof(JSN_ReaderFrame));
-	SDL_zero(*frame);
+	SDL_zerop(frame);
 
 	if (reader->top)
 	{
 		switch (reader->top->value->type)
 		{
 			case JSN_TYPE_ARRAY:
-				frame->value = JSN_ChunkAddElement(reader->result, reader->top->value, nullptr);
+				frame->value = JSN_ChunkAddElement(reader->result, reader->top->value, NULL, NULL);
 				break;
 
 			case JSN_TYPE_OBJECT:
-				frame->value = JSN_ChunkAddProperty(reader->result, reader->top->value, reader->key, reader->key_length, nullptr);
+				frame->value = JSN_ChunkAddProperty(reader->result, reader->top->value, NULL, NULL, reader->key, reader->key_length);
 				break;
 		}
 
@@ -596,7 +585,7 @@ static JSN_ReaderFrame* JSN_ReaderPush(JSN_Reader* reader)
 }
 
 
-static void JSN_ReaderPop(JSN_Reader* reader)
+static void JSN_ChunkReaderPop(JSN_ChunkReader* reader)
 {
 	JSN_ReaderFrame* top = reader->top;
 	reader->top = top->parent;
@@ -604,9 +593,9 @@ static void JSN_ReaderPop(JSN_Reader* reader)
 }
 
 
-static bool JSN_ReaderKey(void* userdata, const char* key, size_t length)
+static bool JSN_ChunkReaderKey(void* userdata, const char* key, size_t length)
 {
-	JSN_Reader* reader = (JSN_Reader*)userdata;
+	JSN_ChunkReader* reader = (JSN_ChunkReader*)userdata;
 
 	char* copy = (char*)SDL_calloc(length + 1, sizeof(char));
 	SDL_strlcpy(copy, key, length);
@@ -617,19 +606,19 @@ static bool JSN_ReaderKey(void* userdata, const char* key, size_t length)
 }
 
 
-static bool JSN_ReaderValue(void* userdata, JSN_Value* value)
+static bool JSN_ChunkReaderValue(void* userdata, JSN_Value* value)
 {
-	JSN_Reader* reader = (JSN_Reader*)userdata;
+	JSN_ChunkReader* reader = (JSN_ChunkReader*)userdata;
 
 	if (reader->top)
 	{
 		switch (reader->top->value->type)
 		{
 			case JSN_TYPE_ARRAY:
-				return JSN_ChunkCopy(reader->result, JSN_ChunkAddElement(reader->result, reader->top->value, nullptr), value);
+				return JSN_ChunkCopy(reader->result, JSN_ChunkAddElement(reader->result, reader->top->value, NULL, NULL), value);
 
 			case JSN_TYPE_OBJECT:
-				return JSN_ChunkCopy(reader->result, JSN_ChunkAddProperty(reader->result, reader->top->value, reader->key, reader->key_length, nullptr), value);
+				return JSN_ChunkCopy(reader->result, JSN_ChunkAddProperty(reader->result, reader->top->value, NULL, NULL, reader->key, reader->key_length), value);
 
 			default:
 				return false;
@@ -642,77 +631,75 @@ static bool JSN_ReaderValue(void* userdata, JSN_Value* value)
 }
 
 
-static bool JSN_ReaderOpenArray(void* userdata)
+static bool JSN_ChunkReaderOpenArray(void* userdata)
 {
-	JSN_Reader* reader = (JSN_Reader*)userdata;
+	JSN_ChunkReader* reader = (JSN_ChunkReader*)userdata;
 
-	JSN_ReaderFrame* top = JSN_ReaderPush(reader);
+	JSN_ReaderFrame* top = JSN_ChunkReaderPush(reader);
 	JSN_ChunkSetArray(reader->result, top->value);
 
 	return true;
 }
 
 
-static bool JSN_ReaderCloseArray(void* userdata, size_t)
+static bool JSN_ChunkReaderCloseArray(void* userdata, size_t)
 {
-	JSN_Reader* reader = (JSN_Reader*)userdata;
-	JSN_ReaderPop(reader);
+	JSN_ChunkReader* reader = (JSN_ChunkReader*)userdata;
+	JSN_ChunkReaderPop(reader);
 	return true;
 }
 
 
-static bool JSN_ReaderOpenObject(void* userdata)
+static bool JSN_ChunkReaderOpenObject(void* userdata)
 {
-	JSN_Reader* reader = (JSN_Reader*)userdata;
+	JSN_ChunkReader* reader = (JSN_ChunkReader*)userdata;
 
-	JSN_ReaderFrame* top = JSN_ReaderPush(reader);
+	JSN_ReaderFrame* top = JSN_ChunkReaderPush(reader);
 	JSN_ChunkSetObject(reader->result, top->value);
 
 	return true;
 }
 
 
-static bool JSN_ReaderCloseObject(void* userdata, size_t)
+static bool JSN_ChunkReaderCloseObject(void* userdata, size_t)
 {
-	JSN_Reader* reader = (JSN_Reader*)userdata;
-	JSN_ReaderPop(reader);
+	JSN_ChunkReader* reader = (JSN_ChunkReader*)userdata;
+	JSN_ChunkReaderPop(reader);
 	return true;
 }
 
 
-static JSN_Chunk* JSN_ReadIO(SDL_IOStream* stream)
+JSN_Chunk* JSN_ReadChunkFromIO(SDL_IOStream* stream, bool closeio)
 {
 	static const JSN_ReaderInterface iface
 	{
-		.key = JSN_ReaderKey,
-		.value = JSN_ReaderValue,
-		.open_array = JSN_ReaderOpenArray,
-		.close_array = JSN_ReaderCloseArray,
-		.open_object = JSN_ReaderOpenObject,
-		.close_object = JSN_ReaderCloseObject,
+		.version = sizeof(JSN_ReaderInterface),
+		.key = JSN_ChunkReaderKey,
+		.value = JSN_ChunkReaderValue,
+		.open_array = JSN_ChunkReaderOpenArray,
+		.close_array = JSN_ChunkReaderCloseArray,
+		.open_object = JSN_ChunkReaderOpenObject,
+		.close_object = JSN_ChunkReaderCloseObject,
 	};
 
-	JSN_Reader reader;
+	JSN_ChunkReader reader;
 	SDL_zero(reader);
 	reader.result = JSN_CreateChunk();
 
-	if (JSN_Read(stream, &iface, &reader))
-	{
-		SDL_CloseIO(stream);
-		return reader.result;
-	}
+	if (JSN_Read(stream, &iface, &reader, closeio))
+	{ return reader.result; }
 
-	return nullptr;
+	return NULL;
 }
 
 
-JSN_Chunk* JSN_ReadFile(const char* file)
+JSN_Chunk* JSN_ReadChunkFromFile(const char* file)
 {
-	return JSN_ReadIO(SDL_IOFromFile(file, "rt"));
+	return JSN_ReadChunkFromIO(SDL_IOFromFile(file, "rt"), true);
 }
 
 
-JSN_Chunk* JSN_ReadMem(const void* mem, size_t length)
+JSN_Chunk* JSN_ReadChunkFromMem(const void* mem, size_t length)
 {
-	return JSN_ReadIO(SDL_IOFromConstMem(mem, length));
+	return JSN_ReadChunkFromIO(SDL_IOFromConstMem(mem, length), true);
 }
